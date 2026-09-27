@@ -129,6 +129,7 @@
       <a class="brand" href="#top" aria-label="Side home"><img src="assets/side-logo.png" width="28" height="28" alt="" aria-hidden="true"><span>Side<span aria-hidden="true">.</span></span></a>
       <nav class="nav" aria-label="Main navigation">
         <a href="#how" data-ko="작동 방식" data-en="How it works">작동 방식</a>
+        <a href="#resume" data-ko="하던 일 이어가기" data-en="Resume work">하던 일 이어가기</a>
         <a href="#start" data-ko="시작하기" data-en="Get started">시작하기</a>
         <a href="#privacy" data-ko="프라이버시" data-en="Privacy">프라이버시</a>
       </nav>
@@ -182,6 +183,10 @@
           <div class="step"><span class="number">02 / 이어하기</span><h3>회의 전에 뭘 하고 있었지?</h3><p>“회의 들어가기 직전에 읽던 문서와 작성하던 메모를 찾아줘.”</p></div>
           <div class="step"><span class="number">03 / 정리하기</span><h3>오늘은 무슨 일을 했지?</h3><p>“오늘 오후에 한 일을 시간순으로 정리해줘.” 날짜별 요약을 켰다면 그 내용을 함께 활용할 수 있습니다.</p></div>
         </div>
+      </div></section>
+      <section class="section" id="resume"><div class="shell split">
+        <div><p class="kicker">Side 스킬</p><h2>중단한 일을 출처와 함께 이어가세요.</h2><p><code>/side-resume</code>은 해당 시간대의 Side 기록에서 관련 출처를 최대 5개 읽고, 확인된 사실·미완료 또는 미확인 작업·다음 행동을 짧게 정리합니다. 기록만으로 완료 여부를 단정하지 않습니다.</p><p>스킬은 소스와 앱 패키지에 들어 있지만, 사용하는 에이전트에 직접 설치해야 합니다. Side MCP 연결도 별도로 필요합니다.</p><p><a href="https://github.com/Chris-Chai-Minjae/side-work-memory/blob/main/docs/agents.md#side-resume-스킬로-하던-일-이어가기">스킬 설치 방법 보기 ↗</a></p></div>
+        <div><pre class="code-block"><code>/side-resume 어제 오후에 검토하던 문서 작업 이어줘</code></pre><p class="detail">Claude Code와 Aside에서는 <code>/side-resume</code>, Codex에서는 <code>$side-resume</code>로 요청할 수 있습니다. Side가 기록한 범위 안에서만 답합니다.</p></div>
       </div></section>
       <section class="section" id="start"><div class="shell split">
         <div><p class="kicker">시작하기</p><h2>Mac에서 소스를 빌드해 설치하세요.</h2><p>macOS 14+, Bun, Xcode Command Line Tools, FTS5와 확장 로딩을 지원하는 SQLite dylib가 필요합니다. 빌드 과정에서 MiniLM 모델을 내려받습니다.</p><p><a href="side-for-beginners.html">처음 사용하는 분을 위한 안내 ↗</a></p></div>
@@ -255,6 +260,10 @@ open /Applications/Side.app</code></pre><p class="detail">앱을 종료한 뒤 �
           <div class="step"><span class="number">02 / RESUME</span><h3>Where did I leave off?</h3><p>“Find the document I was reading and the note I was writing right before the meeting.”</p></div>
           <div class="step"><span class="number">03 / RECAP</span><h3>What did I do today?</h3><p>“Put my work this afternoon in time order.” If you enabled daily summaries, the agent can use those too.</p></div>
         </div>
+      </div></section>
+      <section class="section" id="resume-en"><div class="shell split">
+        <div><p class="kicker">Side skill</p><h2>Pick up where you left off, with sources.</h2><p><code>/side-resume</code> reads up to five relevant Side records for the requested period and gives you confirmed facts, unfinished or unverified work, and the next steps. A viewed page alone does not prove a task was finished.</p><p>The skill is included in the source and app bundle. Install it in each agent you use, and connect the Side MCP server separately.</p><p><a href="https://github.com/Chris-Chai-Minjae/side-work-memory/blob/main/docs/agents.en.md#resume-work-with-the-side-resume-skill">See skill installation steps ↗</a></p></div>
+        <div><pre class="code-block"><code>/side-resume Pick up the document I was reviewing yesterday afternoon</code></pre><p class="detail">Use <code>/side-resume</code> in Claude Code or Aside, or <code>$side-resume</code> in Codex. Answers are limited to the activity Side actually recorded.</p></div>
       </div></section>
       <section class="section" id="start-en"><div class="shell split">
         <div><p class="kicker">Get started</p><h2>Build it from source.</h2><p>Requires macOS 14+, Bun, Xcode Command Line Tools, and a SQLite dylib with FTS5 and extension loading. The build downloads the MiniLM model.</p><p><a href="side-for-beginners.en.html">Detailed beginner guide ↗</a></p></div>

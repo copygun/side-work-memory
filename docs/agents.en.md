@@ -8,6 +8,22 @@ Registering Side as an MCP server lets that agent search your Side history. It d
 
 **Summary-provider login is separate from the MCP registration below.** To use OpenAI or Claude Code for Side summaries, run `codex login` or `claude auth login` in the official CLI, then choose that provider in Side. A Codex login stored only in Keychain cannot currently be used for this summary option. Use a CLI login for Side summaries at your own risk; check the service's terms and usage limits. Side sends real activity to a summary model only after you enable **Send evidence to this provider**.
 
+## Resume work with the side-resume skill
+
+Ask `side-resume` to “pick up the document I was working on yesterday afternoon.” It checks up to five relevant Side records and returns **confirmed facts → unfinished or unverified work → next steps → sources**. It does not guess whether a task was completed. The [skill source](../skills/side-resume/SKILL.md) is included in this repository and in the built `Side.app/Contents/Resources/skills/side-resume/` directory.
+
+Installing the app does not register the skill or the MCP server in any agent. First **connect Side MCP** using the instructions below, then link the skill into each agent you use. These commands assume `/Applications/Side.app` and Aside's first profile (`u/0`). If a skill with the same name already exists, `ln -s` will fail; inspect that entry before replacing it.
+
+```sh
+skill="/Applications/Side.app/Contents/Resources/skills/side-resume"
+mkdir -p "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.aside/u/0/skills/user"
+ln -s "$skill" "$HOME/.claude/skills/side-resume"
+ln -s "$skill" "$HOME/.codex/skills/side-resume"
+ln -s "$skill" "$HOME/.aside/u/0/skills/user/side-resume"
+```
+
+If Codex uses a separate `CODEX_HOME`, link the skill in that directory's `skills/` too. For another Aside profile, use its own `skills/user/` directory. Start a new agent session if the skill does not appear immediately. Ask `/side-resume Pick up yesterday afternoon's document work` in Claude Code or Aside, or `$side-resume Pick up yesterday afternoon's document work` in Codex. The skill cannot search Side records until that agent's MCP connection is configured.
+
 ## Connect an agent
 
 ### Claude Code

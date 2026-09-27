@@ -6,6 +6,22 @@
 
 **요약 모델 로그인은 아래 MCP 등록과 별개입니다.** Side에서 OpenAI 또는 Claude Code를 요약 제공자로 쓰려면 각 공식 CLI에서 `codex login` 또는 `claude auth login`을 마친 뒤 Side에서 해당 제공자를 선택하세요. Codex 로그인이 Keychain에만 저장된 환경은 현재 이 요약 옵션을 사용할 수 없습니다. CLI 로그인을 Side 요약에 사용할 때는 서비스 약관과 사용량 제한을 직접 확인하고 본인 책임으로 사용하세요. 실제 활동은 **이 제공자에게 증거 전송**을 켠 뒤에만 요약 모델로 보냅니다.
 
+## side-resume 스킬로 하던 일 이어가기
+
+`side-resume`은 “어제 오후에 하던 문서 작업 이어줘”처럼 요청하면 관련 Side 기록을 최대 5개 확인하고 **확인된 사실 → 미완료·미확인 → 다음 행동 → 출처**로 정리합니다. 기록에 없는 완료 여부는 추측하지 않습니다. [스킬 원본](../skills/side-resume/SKILL.md)은 소스 저장소와 빌드한 `Side.app/Contents/Resources/skills/side-resume/`에 포함됩니다.
+
+앱을 설치해도 스킬이나 MCP 연결이 에이전트에 자동 등록되지는 않습니다. 먼저 아래에서 **Side MCP를 등록**한 다음, 쓸 에이전트의 스킬 폴더에 연결하세요. 다음 명령은 `/Applications/Side.app`과 첫 번째 Aside 프로필(`u/0`)을 기준으로 합니다. 이미 같은 이름의 스킬이 있으면 `ln -s`가 실패하므로 기존 파일을 확인한 뒤 직접 처리하세요.
+
+```sh
+skill="/Applications/Side.app/Contents/Resources/skills/side-resume"
+mkdir -p "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.aside/u/0/skills/user"
+ln -s "$skill" "$HOME/.claude/skills/side-resume"
+ln -s "$skill" "$HOME/.codex/skills/side-resume"
+ln -s "$skill" "$HOME/.aside/u/0/skills/user/side-resume"
+```
+
+Codex가 별도의 `CODEX_HOME`을 사용한다면 그 경로의 `skills/`에도 연결하세요. Aside에서 다른 프로필을 사용한다면 해당 프로필의 `skills/user/`에 연결하세요. 새 스킬이 보이지 않으면 해당 에이전트의 새 세션을 시작하세요. Claude Code와 Aside에서는 `/side-resume 어제 오후 문서 작업`, Codex에서는 `$side-resume 어제 오후 문서 작업`처럼 요청할 수 있습니다. 스킬만 설치하고 MCP를 연결하지 않으면 Side 기록을 검색할 수 없습니다.
+
 ## 등록
 
 ### Claude Code

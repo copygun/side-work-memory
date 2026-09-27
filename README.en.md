@@ -118,11 +118,14 @@ claude mcp add --scope user side -- "/Applications/Side.app/Contents/Resources/s
 
 Per-client setup and tool usage are in the [agent connection guide](docs/agents.en.md). The MCP server starts even when the daemon is stopped, but tool calls return `Side is not running. Open Side.app.`
 
+To pick up a paused task, install the included [`side-resume` skill](skills/side-resume/SKILL.md) and ask “`/side-resume Pick up yesterday afternoon's document work`.” It gives you confirmed facts, unfinished or unverified work, next steps, and sources. The app bundle also contains the skill, but installing it and registering Side MCP are separate steps. [Installation steps](docs/agents.en.md#resume-work-with-the-side-resume-skill)
+
 ## Documentation
 
 - **[Detailed manual](docs/manual.en.md)** build options, permission and rebuild recovery, storage layout, deletion and full uninstall, summary models and cost
 - [Beginner's guide](https://chris-chai-minjae.github.io/side-work-memory/side-for-beginners.en.html) plain-language walkthrough with example questions
 - [Agent connection guide](docs/agents.en.md) Claude Code, Codex, Cursor, Grok Build, and Aside setup
+- [side-resume skill](skills/side-resume/SKILL.md) resume a paused task with sources
 - [Landing page](https://chris-chai-minjae.github.io/side-work-memory/) Korean and English overview
 - [Development status](docs/qa/) QA reports and open gates · [Publication history](docs/qa/publication-history.md)
 

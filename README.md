@@ -118,11 +118,14 @@ claude mcp add --scope user side -- "/Applications/Side.app/Contents/Resources/s
 
 에이전트별 등록 방법과 도구 사용법은 [에이전트 연결 안내](docs/agents.md)에 있습니다. 데몬이 꺼져 있어도 MCP 서버는 시작되지만, 도구 호출 시 `Side is not running. Open Side.app.`을 반환합니다.
 
+중단한 작업을 되짚을 때는 함께 제공되는 [`side-resume` 스킬](skills/side-resume/SKILL.md)을 설치해 “`/side-resume 어제 오후 문서 작업 이어줘`”라고 요청할 수 있습니다. 확인된 사실, 미완료·미확인 작업, 다음 행동과 출처를 짧게 정리합니다. 앱 패키지에도 포함되지만 스킬 설치와 Side MCP 등록은 각각 해야 합니다. [설치 방법](docs/agents.md#side-resume-스킬로-하던-일-이어가기)
+
 ## 문서
 
 - **[상세 설명서](docs/manual.md)** 설치·빌드 옵션, 권한과 재빌드 문제 해결, 데이터 저장 구조, 삭제와 완전 제거, 요약 모델과 비용
 - [처음 쓰는 사람을 위한 안내서](https://chris-chai-minjae.github.io/side-work-memory/side-for-beginners.html) 처음 쓰는 분을 위한 쉬운 설명과 질문 예시
 - [에이전트 연결 안내](docs/agents.md) Claude Code, Codex, Cursor, Grok Build, Aside 등록 방법
+- [side-resume 스킬](skills/side-resume/SKILL.md) 중단한 일을 출처와 함께 이어가기
 - [소개 페이지](https://chris-chai-minjae.github.io/side-work-memory/) 한국어·영어 소개
 - [개발 현황](docs/qa/) QA 보고서와 남은 검증 항목 · [공개 이력 설명](docs/qa/publication-history.md)
 

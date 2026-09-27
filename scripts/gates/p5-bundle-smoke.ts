@@ -17,6 +17,7 @@ const required = [
   join(resources, "lib", "vec0.dylib"),
   join(resources, "lib", "libonnxruntime.1.dylib"),
   join(resources, "web", "index.html"),
+  join(resources, "skills", "side-resume", "SKILL.md"),
   join(resources, "models", EMBEDDING_MODEL_ID, "onnx", "model_quantized.onnx"),
 ] as const
 for (const path of required) {

@@ -22,6 +22,8 @@ cp "$package_dir/Info.plist" "$app_dir/Contents/Info.plist"
 cp "$package_dir/Assets/AppIcon.icns" "$resources/AppIcon.icns"
 cp "$package_dir/Assets/MenuBarTemplate.png" "$resources/MenuBarTemplate.png"
 cp "$package_dir/Assets/MenuBarTemplate@2x.png" "$resources/MenuBarTemplate@2x.png"
+mkdir -p "$resources/skills/side-resume"
+cp "$repo_dir/skills/side-resume/SKILL.md" "$resources/skills/side-resume/SKILL.md"
 (cd "$repo_dir" && bun run scripts/build-daemon.ts src/cli.ts "$resources/side")
 
 sqlite_library=${SIDE_SQLITE_LIBRARY:-}
