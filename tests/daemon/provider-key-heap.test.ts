@@ -23,20 +23,28 @@ async function waitForSocket(path: string): Promise<void> {
   throw new Error("Synthetic daemon UDS did not start")
 }
 
+let inspectorRequestId = 0
+
 async function evaluate(inspector: WebSocket, expression: string): Promise<void> {
+  // Match the reply by id: the Inspector may interleave other messages (seen on Windows), and a
+  // stale reply would let the test read the heap snapshot before it is written.
+  const id = ++inspectorRequestId
   const reply = await new Promise<unknown>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Inspector evaluation timed out")), 10_000)
-    inspector.addEventListener(
-      "message",
-      (event) => {
-        clearTimeout(timeout)
-        resolve(JSON.parse(String(event.data)))
-      },
-      { once: true },
-    )
+    const timeout = setTimeout(() => {
+      inspector.removeEventListener("message", onMessage)
+      reject(new Error("Inspector evaluation timed out"))
+    }, 10_000)
+    function onMessage(event: MessageEvent): void {
+      const message: unknown = JSON.parse(String(event.data))
+      if (typeof message !== "object" || message === null || !("id" in message) || message.id !== id) return
+      clearTimeout(timeout)
+      inspector.removeEventListener("message", onMessage)
+      resolve(message)
+    }
+    inspector.addEventListener("message", onMessage)
     inspector.send(
       JSON.stringify({
-        id: 1,
+        id,
         method: "Runtime.evaluate",
         params: { expression, awaitPromise: true, returnByValue: true },
       }),
@@ -107,7 +115,7 @@ test("Given a synthetic provider key sent over daemon UDS, when GC and heap snap
       })}\n`,
     )
     await waitForSocket(socketPath)
-    const inspectorUrl = stderr.match(/ws:\/\/127\.0\.0\.1:\d+\/[A-Za-z0-9]+/u)?.[0]
+    const inspectorUrl = stderr.match(/ws:\/\/127\.0\.0\.1:\d+\/[A-Za-z0-9-]+/u)?.[0]
     if (!inspectorUrl) throw new Error("Synthetic daemon Inspector did not start")
     inspector = new WebSocket(inspectorUrl)
     await new Promise<void>((resolve, reject) => {
@@ -144,10 +152,13 @@ test("Given a synthetic provider key sent over daemon UDS, when GC and heap snap
     await evaluate(inspector, `globalThis.__sideHeapCanary = ${JSON.stringify(marker)}`)
     await evaluate(
       inspector,
-      `(async () => {
+      // Synchronous write: Bun's Inspector does not honour awaitPromise, so an async write could
+      // still be pending when the reply arrives.
+      `(() => {
       Bun.gc(true);
       Bun.gc(true);
-      return await Bun.write(${JSON.stringify(snapshotPath)}, Bun.generateHeapSnapshot("v8", "arraybuffer"));
+      process.getBuiltinModule("node:fs").writeFileSync(${JSON.stringify(snapshotPath)}, new Uint8Array(Bun.generateHeapSnapshot("v8", "arraybuffer")));
+      return true;
     })()`,
     )
     const snapshot = readFileSync(snapshotPath)

@@ -45,8 +45,10 @@ public sealed class RestartPolicy
 /// Spawns resources\side.exe daemon, hands it the master key in the hello frame, relays
 /// commands to the router and restarts it with backoff (port of Supervisor.swift).
 /// </summary>
-public sealed class DaemonSupervisor(string daemonPath, string appVersion, ISideKeyStore keyStore)
+public sealed class DaemonSupervisor(string daemonPath, string appVersion, ISideKeyStore keyStore, IReadOnlyList<string>? daemonArguments = null)
 {
+    private readonly IReadOnlyList<string> _arguments = daemonArguments ?? ["daemon"];
+
     private static readonly HashSet<string> ProviderCommands =
         ["keychain.set", "keychain.get", "keychain.status", "keychain.authorize"];
 
@@ -136,7 +138,7 @@ public sealed class DaemonSupervisor(string daemonPath, string appVersion, ISide
 
     private ProcessStartInfo MakeStartInfo()
     {
-        var info = new ProcessStartInfo(daemonPath, "daemon")
+        var info = new ProcessStartInfo(daemonPath, _arguments)
         {
             UseShellExecute = false,
             RedirectStandardInput = true,

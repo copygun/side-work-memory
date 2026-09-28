@@ -121,7 +121,8 @@ export async function scanG1Canaries(dataRoot: string): Promise<ScanResult> {
   let totalMatches = 0
   for (const file of files) {
     const matches = await countFileMatches(file)
-    results.push({ path: relative(root, file), matches })
+    // Report paths with "/" on every platform so the gate output is stable across macOS and Windows.
+    results.push({ path: relative(root, file).split(sep).join("/"), matches })
     totalMatches += matches
   }
   return { files: results, totalMatches }

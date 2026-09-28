@@ -27,7 +27,9 @@ function payload(result: Awaited<ReturnType<Client["callTool"]>>): unknown {
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  test(`Given a synthetic Aside fixture, when MCP queries and ${signal} run, then its isolated root is removed`, async () => {
+  // POSIX-only gate: it registers a /bin/sh wrapper and relies on catchable SIGINT/SIGTERM,
+  // neither of which exists for Windows processes.
+  test.skipIf(process.platform === "win32")(`Given a synthetic Aside fixture, when MCP queries and ${signal} run, then its isolated root is removed`, async () => {
     const script = join(import.meta.dir, "..", "..", "scripts", "gates", "p3-aside-fixture.ts")
     const fixture = Bun.spawn([process.execPath, script], {
       stdout: "pipe",

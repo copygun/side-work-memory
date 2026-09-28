@@ -8,6 +8,7 @@ import {
 import { RecordSummaryTool } from "../contracts/summary"
 import { type ResolvedExecutable, resolveCliExecutable } from "../platform/executable"
 import type { SummaryMessage } from "./prompt"
+import { startPoll } from "../platform/poll"
 import { SUMMARY_SYSTEM_PROMPT } from "./prompt"
 
 export class ClaudeCliUnavailableError extends Error {
@@ -109,12 +110,14 @@ async function runClaude(
       child.kill("SIGKILL")
     }
     const timer = setTimeout(() => stop("timeout"), Math.max(0, deadline - performance.now()))
-    const consentPoll = setInterval(() => {
-      if (!canSendEvidence()) stop("revoked")
+    const stopConsentPoll = startPoll(() => {
+      // Deadline is also checked here: see platform/poll.ts for why timers alone are not trusted.
+      if (performance.now() >= deadline) stop("timeout")
+      else if (!canSendEvidence()) stop("revoked")
     }, SUMMARY_CLAUDE_CONSENT_POLL_MS)
     const cleanup = (): void => {
       clearTimeout(timer)
-      clearInterval(consentPoll)
+      stopConsentPoll()
     }
     const collect = (chunk: Buffer, stdout: boolean): void => {
       responseBytes += chunk.length

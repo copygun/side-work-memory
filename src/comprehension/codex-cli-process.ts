@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process"
 import { StringDecoder } from "node:string_decoder"
+import { startPoll } from "../platform/poll"
 import { SUMMARY_CODEX_CONSENT_POLL_MS, SUMMARY_CODEX_MAX_OUTPUT_BYTES } from "../constants"
 import {
   IS_WINDOWS,
@@ -117,12 +118,14 @@ export async function runCodex(options: RunOptions): Promise<CapturedRun> {
       killProcessTree(child.pid, () => child.kill("SIGKILL"))
     }
     const timer = setTimeout(() => stop("timeout"), Math.max(0, deadline - performance.now()))
-    const consentPoll = setInterval(() => {
-      if (!canSendEvidence()) stop("revoked")
+    const stopConsentPoll = startPoll(() => {
+      // Deadline is also checked here: see platform/poll.ts for why timers alone are not trusted.
+      if (performance.now() >= deadline) stop("timeout")
+      else if (!canSendEvidence()) stop("revoked")
     }, SUMMARY_CODEX_CONSENT_POLL_MS)
     const cleanup = (): void => {
       clearTimeout(timer)
-      clearInterval(consentPoll)
+      stopConsentPoll()
     }
     const collect = (chunk: Buffer, stdout: boolean): void => {
       responseBytes += chunk.length

@@ -25,6 +25,15 @@ internal static class Program
             retryKeyStore: () => runtime?.Supervisor.RetryKeyStore(),
             quitAsync: () => runtime?.QuitAsync() ?? Task.CompletedTask);
 
+        IReadOnlyList<string>? daemonArguments = null;
+#if DEBUG
+        // Development only: SIDE_DEV_DAEMON="<bun.exe>|<repo>\src\cli.ts" runs the daemon from source.
+        if (Environment.GetEnvironmentVariable("SIDE_DEV_DAEMON") is { Length: > 0 } dev && dev.Split('|') is [var bun, var script])
+        {
+            daemonPath = bun;
+            daemonArguments = ["run", script, "daemon"];
+        }
+#endif
         if (!File.Exists(daemonPath))
         {
             MessageBox.Show(
@@ -33,7 +42,7 @@ internal static class Program
             return 1;
         }
 
-        var supervisor = new DaemonSupervisor(daemonPath, version, new WindowsCredentialKeyStore());
+        var supervisor = new DaemonSupervisor(daemonPath, version, new WindowsCredentialKeyStore(), daemonArguments);
         var capture = new CaptureLayer();
         runtime = new SideRuntime(supervisor, capture, ui);
 
