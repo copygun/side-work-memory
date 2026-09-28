@@ -1,3 +1,4 @@
+import { expectPrivateMode } from "../platform"
 import { expect, test } from "bun:test"
 import { randomUUID } from "node:crypto"
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
@@ -485,7 +486,7 @@ test("Given a configured provider, when setting a key, then only its Keychain re
     const persisted = readFileSync(join(fixtureValue.directory, "settings.json"), "utf8")
     expect(persisted).not.toContain(secret)
     expect(JSON.stringify(response)).not.toContain(secret)
-    expect(statSync(join(fixtureValue.directory, "settings.json")).mode & 0o777).toBe(0o600)
+    expectPrivateMode(statSync(join(fixtureValue.directory, "settings.json")).mode, 0o600)
   } finally {
     rmSync(fixtureValue.directory, { recursive: true, force: true })
   }

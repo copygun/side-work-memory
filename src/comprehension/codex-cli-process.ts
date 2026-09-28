@@ -1,8 +1,12 @@
 import { spawn } from "node:child_process"
-import { accessSync, constants, statSync } from "node:fs"
-import { delimiter, isAbsolute, join } from "node:path"
 import { StringDecoder } from "node:string_decoder"
 import { SUMMARY_CODEX_CONSENT_POLL_MS, SUMMARY_CODEX_MAX_OUTPUT_BYTES } from "../constants"
+import {
+  IS_WINDOWS,
+  killProcessTree,
+  type ResolvedExecutable,
+  resolveCliExecutable,
+} from "../platform/executable"
 
 export class CodexCliUnavailableError extends Error {
   readonly name = "CodexCliUnavailableError"
@@ -25,7 +29,7 @@ type CapturedRun = {
 }
 type StopReason = "revoked" | "timeout" | "overflow" | "input-error" | "tool"
 type RunOptions = {
-  readonly executable: string
+  readonly executable: ResolvedExecutable
   readonly args: readonly string[]
   readonly input?: string
   readonly cwd: string
@@ -60,28 +64,10 @@ function isToolEvent(line: string): boolean {
   return event.item.type !== "agent_message" && event.item.type !== "reasoning"
 }
 
-function isExecutableFile(path: string): boolean {
-  try {
-    if (!statSync(path).isFile()) return false
-    accessSync(path, constants.X_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-export function resolveCodexExecutable(): string {
-  for (const directory of (process.env["PATH"] ?? "").split(delimiter)) {
-    if (!isAbsolute(directory)) continue
-    const candidate = join(directory, "codex")
-    if (isExecutableFile(candidate)) return candidate
-  }
-  const home = process.env["HOME"]
-  if (home && isAbsolute(home)) {
-    const candidate = join(home, ".local", "bin", "codex")
-    if (isExecutableFile(candidate)) return candidate
-  }
-  throw new CodexCliUnavailableError()
+export function resolveCodexExecutable(): ResolvedExecutable {
+  const resolved = resolveCliExecutable("codex")
+  if (resolved === null) throw new CodexCliUnavailableError()
+  return resolved
 }
 
 function cliEnvironment(home: string, codexHome: string): NodeJS.ProcessEnv {
@@ -99,6 +85,7 @@ function cliEnvironment(home: string, codexHome: string): NodeJS.ProcessEnv {
   ])
     delete env[name]
   env["HOME"] = home
+  if (IS_WINDOWS) env["USERPROFILE"] = home
   env["CODEX_HOME"] = codexHome
   return env
 }
@@ -107,9 +94,12 @@ export async function runCodex(options: RunOptions): Promise<CapturedRun> {
   const { executable, args, input, cwd, home, codexHome, deadline, canSendEvidence } = options
   if (!canSendEvidence()) throw new CodexCliConsentRevokedError()
   if (performance.now() >= deadline) throw new CodexCliUnavailableError()
-  const child = spawn(executable, [...args], {
+  const child = spawn(executable.command, [...executable.prefixArgs, ...args], {
     shell: false,
-    detached: true,
+    // POSIX: new process group so the whole tree can be killed. Windows: detached would open
+    // a console window; the tree is killed with taskkill /T instead.
+    detached: !IS_WINDOWS,
+    windowsHide: true,
     cwd,
     stdio: ["pipe", "pipe", "pipe"],
     env: cliEnvironment(home, codexHome),
@@ -124,17 +114,7 @@ export async function runCodex(options: RunOptions): Promise<CapturedRun> {
     const stop = (reason: StopReason): void => {
       if (stopped) return
       stopped = reason
-      const pid = child.pid
-      if (pid === undefined) {
-        child.kill("SIGKILL")
-      } else {
-        try {
-          process.kill(-pid, "SIGKILL")
-        } catch (error) {
-          if (!(error instanceof Error)) throw error
-          child.kill("SIGKILL")
-        }
-      }
+      killProcessTree(child.pid, () => child.kill("SIGKILL"))
     }
     const timer = setTimeout(() => stop("timeout"), Math.max(0, deadline - performance.now()))
     const consentPoll = setInterval(() => {

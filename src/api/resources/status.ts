@@ -19,7 +19,7 @@ const HelperPermissionsSchema = z.strictObject({
 })
 
 const UNAVAILABLE_HEALTH = {
-  platform: "darwin",
+  platform: process.platform === "win32" ? "win32" : "darwin",
   protocolVersion: 1,
   nativeCaptureAvailable: false,
   inputCaptureAvailable: false,

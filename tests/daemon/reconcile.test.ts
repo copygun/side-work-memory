@@ -1,3 +1,5 @@
+import { DAEMON_UNAVAILABLE_MESSAGE } from "../../src/platform/messages"
+import { expectPrivateMode } from "../platform"
 import { describe, expect, test } from "bun:test"
 import { createHash } from "node:crypto"
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
@@ -365,7 +367,7 @@ test("Given the CLI surface, when help or a daemon-backed client command runs, t
     expect(help.stdout.toString()).toContain("memory")
     const status = run("status")
     expect(status.exitCode).toBe(1)
-    expect(status.stderr.toString()).toContain("Side is not running. Open Side.app.")
+    expect(status.stderr.toString()).toContain(DAEMON_UNAVAILABLE_MESSAGE)
     const daemon = run("daemon")
     expect(daemon.exitCode).toBe(1)
     expect(daemon.stderr.toString()).toContain("Helper is unavailable")
@@ -1750,7 +1752,7 @@ test("Given cold and expired synthetic evidence, when daemon starts and receives
           .get()?.count,
       ).toBe(2)
       for (const suffix of ["", "-wal", "-shm"]) {
-        expect(statSync(`${ledgerPath}${suffix}`).mode & 0o777).toBe(0o600)
+        expectPrivateMode(statSync(`${ledgerPath}${suffix}`).mode, 0o600)
       }
     } finally {
       db.close()

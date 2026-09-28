@@ -1,4 +1,5 @@
 import {
+  copyFileSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -13,6 +14,7 @@ import { tmpdir } from "node:os"
 import { isAbsolute, join } from "node:path"
 import { z } from "zod"
 import { SUMMARY_PROVIDER_TIMEOUT_MS } from "../constants"
+import { IS_WINDOWS, userHome } from "../platform/executable"
 import { CodexCliUnavailableError, resolveCodexExecutable, runCodex } from "./codex-cli-process"
 import type { SummaryMessage } from "./prompt"
 import { SUMMARY_SYSTEM_PROMPT } from "./prompt"
@@ -127,15 +129,37 @@ function parseEvents(stdout: string): {
   return { argumentsValue, inputTokens, outputTokens }
 }
 
-function restoreAuthReplacement(authLink: string, accountAuth: string): void {
-  const replacement = lstatSync(authLink, { throwIfNoEntry: false })
-  if (!replacement || (replacement.isSymbolicLink() && readlinkSync(authLink) === accountAuth))
-    return
-  if (
-    !replacement.isFile() ||
-    replacement.uid !== process.getuid?.() ||
-    (replacement.mode & 0o077) !== 0
+// POSIX isolates the account login through a symlink and verifies file ownership and mode.
+// Windows has no unprivileged symlinks and no POSIX modes (per-user ACLs on the profile protect
+// the file instead), so the login is copied in and a changed copy is written back afterwards.
+function isPrivateFile(stats: ReturnType<typeof lstatSync>): boolean {
+  if (!stats?.isFile()) return false
+  if (IS_WINDOWS) return true
+  return stats.uid === process.getuid?.() && (Number(stats.mode) & 0o077) === 0
+}
+
+function authLinkIntact(authLink: string, accountAuth: string, original: string | null): boolean {
+  if (!IS_WINDOWS) return lstatSync(authLink).isSymbolicLink() && readlinkSync(authLink) === accountAuth
+  // Same contract as the symlink check: any replacement of the login during a run fails closed.
+  const stats = lstatSync(authLink, { throwIfNoEntry: false })
+  return (
+    stats?.isFile() === true &&
+    !stats.isSymbolicLink() &&
+    original !== null &&
+    readFileSync(authLink, "utf8") === original
   )
+}
+
+function restoreAuthReplacement(
+  authLink: string,
+  accountAuth: string,
+  original: string | null,
+): void {
+  const replacement = lstatSync(authLink, { throwIfNoEntry: false })
+  if (!replacement) return
+  if (!IS_WINDOWS && replacement.isSymbolicLink() && readlinkSync(authLink) === accountAuth) return
+  if (IS_WINDOWS && replacement.isFile() && readFileSync(authLink, "utf8") === original) return
+  if (replacement.isSymbolicLink() || !isPrivateFile(replacement))
     throw new CodexCliUnavailableError()
   let auth: unknown
   try {
@@ -162,16 +186,15 @@ export async function callCodexCliSummary(
   if (!ModelIdSchema.safeParse(modelId).success) throw new CodexCliUnavailableError()
   const deadline = performance.now() + SUMMARY_PROVIDER_TIMEOUT_MS
   const executable = resolveCodexExecutable()
-  const accountHome = process.env["CODEX_HOME"] ?? join(process.env["HOME"] ?? "", ".codex")
+  const accountHome = process.env["CODEX_HOME"] ?? join(userHome(), ".codex")
   if (!isAbsolute(accountHome)) throw new CodexCliUnavailableError()
   const accountAuth = join(accountHome, "auth.json")
   try {
-    const auth = lstatSync(accountAuth)
-    if (!auth.isFile() || auth.uid !== process.getuid?.() || (auth.mode & 0o077) !== 0)
-      throw new CodexCliUnavailableError()
+    if (!isPrivateFile(lstatSync(accountAuth))) throw new CodexCliUnavailableError()
   } catch {
     throw new CodexCliUnavailableError()
   }
+  let originalAuth: string | null = null
   const directory = mkdtempSync(join(tmpdir(), "side-codex-"))
   const home = join(directory, "home")
   const codexHome = join(directory, "codex")
@@ -183,7 +206,12 @@ export async function callCodexCliSummary(
     mkdirSync(home, { mode: 0o700 })
     mkdirSync(codexHome, { mode: 0o700 })
     mkdirSync(cwd, { mode: 0o700 })
-    symlinkSync(accountAuth, authLink)
+    if (IS_WINDOWS) {
+      copyFileSync(accountAuth, authLink)
+      originalAuth = readFileSync(authLink, "utf8")
+    } else {
+      symlinkSync(accountAuth, authLink)
+    }
     writeFileSync(schemaPath, JSON.stringify(CliJsonSchema), { mode: 0o600 })
     const auth = await runCodex({
       executable,
@@ -194,8 +222,7 @@ export async function callCodexCliSummary(
       deadline,
       canSendEvidence,
     })
-    if (!lstatSync(authLink).isSymbolicLink() || readlinkSync(authLink) !== accountAuth)
-      throw new CodexCliUnavailableError()
+    if (!authLinkIntact(authLink, accountAuth, originalAuth)) throw new CodexCliUnavailableError()
     if (`${auth.stdout}${auth.stderr}`.trim() !== "Logged in using ChatGPT")
       throw new CodexCliUnavailableError()
 
@@ -266,13 +293,12 @@ export async function callCodexCliSummary(
       deadline,
       canSendEvidence,
     })
-    if (!lstatSync(authLink).isSymbolicLink() || readlinkSync(authLink) !== accountAuth)
-      throw new CodexCliUnavailableError()
+    if (!authLinkIntact(authLink, accountAuth, originalAuth)) throw new CodexCliUnavailableError()
     return { ...parseEvents(response.stdout), responseBytes: response.responseBytes }
   } finally {
     try {
       removeDirectory = false
-      restoreAuthReplacement(authLink, accountAuth)
+      restoreAuthReplacement(authLink, accountAuth, originalAuth)
       removeDirectory = true
     } finally {
       if (removeDirectory) rmSync(directory, { recursive: true, force: true })

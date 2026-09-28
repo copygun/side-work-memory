@@ -8,7 +8,7 @@ export const PermissionKindSchema = z.enum([
 ])
 
 export const HelperHealthSchema = z.strictObject({
-  platform: z.literal("darwin"),
+  platform: z.enum(["darwin", "win32"]),
   protocolVersion: z.literal(1),
   nativeCaptureAvailable: z.boolean(),
   inputCaptureAvailable: z.boolean(),

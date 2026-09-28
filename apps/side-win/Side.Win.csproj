@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Side for Windows helper (tray app). Mirrors apps/side-mac.
+    Layers: src/Core (protocol, supervisor, router, key store; no UI/capture types),
+            src/Capture (UI Automation, input hook, OCR, browsers),
+            src/UI (tray, WebView2 settings, onboarding, login item),
+            src/App (composition root + Main).
+    Partial builds for parallel work: -p:SideLayer=capture | ui  (compiles Core + that layer as a library).
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Side</AssemblyName>
+    <RootNamespace>Side.Win</RootNamespace>
+    <Version>0.1.0</Version>
+    <ApplicationIcon Condition="Exists('Assets\Side.ico')">Assets\Side.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en;ko</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(SideLayer)' != ''">
+    <OutputType>Library</OutputType>
+    <BaseOutputPath>bin\layer-$(SideLayer)\</BaseOutputPath>
+    <IntermediateOutputPath>obj\layer-$(SideLayer)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(SideLayer)' == 'capture'">
+    <Compile Remove="src\UI\**;src\App\**" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(SideLayer)' == 'ui'">
+    <Compile Remove="src\Capture\**;src\App\**" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(SideLayer)' == 'core'">
+    <Compile Remove="src\Capture\**;src\UI\**;src\App\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\specs\shared\hard-blocked-bundle-ids.json" LogicalName="hard-blocked-bundle-ids.json" />
+    <None Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

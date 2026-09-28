@@ -1,3 +1,4 @@
+import { expectPrivateMode } from "./platform"
 import { expect, test } from "bun:test"
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -37,7 +38,9 @@ test("Given legacy and Side directory overrides, when resolving the write path, 
     process.env["LCA_DATA_DIR"] = "/tmp/legacy-settings-test"
     expect(sideDataDirectory()).toBe("/tmp/side-settings-test")
     delete process.env["SIDE_DATA_DIR"]
-    expect(sideDataDirectory()).toMatch(/Library\/Application Support\/Side$/)
+    expect(sideDataDirectory()).toMatch(
+      process.platform === "win32" ? /\\Side$/ : /Library\/Application Support\/Side$/,
+    )
     expect(sideDataDirectory()).not.toBe(process.env["LCA_DATA_DIR"])
   } finally {
     if (previousSide === undefined) delete process.env["SIDE_DATA_DIR"]
@@ -61,8 +64,8 @@ test("Given no settings or legacy config, when loaded, then private Side default
       screenOcr: true,
       asideAdapter: false,
     })
-    expect((await stat(directory)).mode & 0o777).toBe(0o700)
-    expect((await stat(join(directory, "settings.json"))).mode & 0o777).toBe(0o600)
+    expectPrivateMode((await stat(directory)).mode, 0o700)
+    expectPrivateMode((await stat(join(directory, "settings.json"))).mode, 0o600)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -99,7 +102,7 @@ test("Given a v1 config, when loaded, then rules and indefinite pause migrate to
     expect(saved.intervalSeconds).toBeUndefined()
     expect(saved.contextAwareness.intervalSeconds).toBeUndefined()
     expect(await readFile(join(legacyDirectory, "config.json"), "utf8")).toBe(oldBytes)
-    expect((await stat(join(directory, "settings.json"))).mode & 0o777).toBe(0o600)
+    expectPrivateMode((await stat(join(directory, "settings.json"))).mode, 0o600)
     expect(await loadSettings(directory, legacyDirectory)).toEqual(migrated)
   } finally {
     await rm(root, { recursive: true, force: true })
@@ -171,7 +174,7 @@ test("Given a v2 update, when saved, then the replacement is private and tempora
     expect(
       (await loadSettings(directory, join(root, "missing-legacy"))).contextAwareness.enabled,
     ).toBe(true)
-    expect((await stat(join(directory, "settings.json"))).mode & 0o777).toBe(0o600)
+    expectPrivateMode((await stat(join(directory, "settings.json"))).mode, 0o600)
     expect(await readdir(directory)).toEqual(["settings.json"])
   } finally {
     await rm(root, { recursive: true, force: true })

@@ -24,6 +24,11 @@ const browserRoots = [
   { browser: "edge", app: "Microsoft Edge", parts: ["Microsoft Edge"] },
   { browser: "aside", app: "Aside", parts: ["Aside"] },
   { browser: "aside", app: "Aside", parts: ["Aside", "User Data"] },
+  // Windows layouts under %LOCALAPPDATA% (macOS layouts above never exist there).
+  { browser: "chrome", app: "Chrome", parts: ["Google", "Chrome", "User Data"] },
+  { browser: "edge", app: "Microsoft Edge", parts: ["Microsoft", "Edge", "User Data"] },
+  { browser: "brave", app: "Brave", parts: ["BraveSoftware", "Brave-Browser", "User Data"] },
+  { browser: "whale", app: "Naver Whale", parts: ["Naver", "Naver Whale", "User Data"] },
 ] as const
 
 const visitSchema = z.strictObject({
@@ -130,7 +135,13 @@ function copyHistory(profile: Profile, destination: string): void {
 
 function isUnavailableFile(error: unknown): boolean {
   if (!(error instanceof Error) || !("code" in error)) return false
-  return error.code === "ENOENT" || error.code === "EACCES" || error.code === "EPERM"
+  // EBUSY: a running Chromium on Windows can hold History with an exclusive share mode.
+  return (
+    error.code === "ENOENT" ||
+    error.code === "EACCES" ||
+    error.code === "EPERM" ||
+    error.code === "EBUSY"
+  )
 }
 
 function readProfile(

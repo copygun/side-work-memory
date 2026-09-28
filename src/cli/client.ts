@@ -3,13 +3,14 @@ import { join } from "node:path"
 import { z } from "zod"
 import { dataDirectory } from "../config/index"
 import { type RpcMethodName, RpcMethods } from "../contracts/rpc"
+import { DAEMON_UNAVAILABLE_MESSAGE } from "../platform/messages"
 
 type ClientOptions = { readonly socketPath?: string }
 
 export class DaemonUnavailableError extends Error {
   readonly name = "DaemonUnavailableError"
   constructor() {
-    super("Side is not running. Open Side.app.")
+    super(DAEMON_UNAVAILABLE_MESSAGE)
   }
 }
 

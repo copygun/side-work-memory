@@ -32,7 +32,8 @@ const health = {
 
 test("Given complete macOS health, when parsed, then all approved fields survive", () => {
   expect(HelperHealthSchema.safeParse(health).success).toBe(true)
-  expect(HelperHealthSchema.safeParse({ ...health, platform: "win32" }).success).toBe(false)
+  expect(HelperHealthSchema.safeParse({ ...health, platform: "win32" }).success).toBe(true)
+  expect(HelperHealthSchema.safeParse({ ...health, platform: "linux" }).success).toBe(false)
   expect(HelperHealthSchema.safeParse({ ...health, responsibleSelf: false }).success).toBe(false)
 })
 

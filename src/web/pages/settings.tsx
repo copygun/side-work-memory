@@ -110,6 +110,9 @@ interface SettingsPageProps {
 const BINARY_PATH = "/Applications/Side.app/Contents/Resources/side"
 
 function shellQuote(value: string): string {
+  // Windows paths (C:\...) are pasted into cmd.exe or PowerShell, which both accept double quotes;
+  // Windows file names cannot contain a double quote, so no escaping is needed.
+  if (/^[A-Za-z]:\\/.test(value)) return `"${value}"`
   return `'${value.replaceAll("'", "'\\''")}'`
 }
 

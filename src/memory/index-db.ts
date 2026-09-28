@@ -20,10 +20,16 @@ export type IndexedChunk = {
 
 export function openIndexDb(path: string): Database {
   configureSqlite()
-  mkdirSync(dirname(path), { recursive: true })
+  // Bun on Windows throws EEXIST for mkdirSync(".", { recursive: true }); skip existing dirs.
+  const directory = dirname(path)
+  if (path !== ":memory:" && !existsSync(directory)) mkdirSync(directory, { recursive: true })
   const db = new Database(path)
   try {
-    const bundledVec = bundledResourcePath(process.execPath, "lib", "vec0.dylib")
+    const bundledVec = bundledResourcePath(
+      process.execPath,
+      "lib",
+      process.platform === "win32" ? "vec0.dll" : "vec0.dylib",
+    )
     if (existsSync(bundledVec)) db.loadExtension(bundledVec)
     else loadVec(db)
     db.exec(`

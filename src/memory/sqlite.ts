@@ -10,6 +10,11 @@ export function bundledResourcePath(executablePath: string, ...parts: readonly s
 
 export function configureSqlite(): string {
   if (configuredPath !== null) return configuredPath
+  // Windows/Linux builds of bun:sqlite already allow loadExtension(); only macOS needs a custom lib.
+  if (process.platform !== "darwin") {
+    configuredPath = "bun:sqlite (builtin)"
+    return configuredPath
+  }
   const bundled = bundledResourcePath(process.execPath, "lib", "libsqlite3.dylib")
   const candidates = [
     bundled,

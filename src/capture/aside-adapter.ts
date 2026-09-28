@@ -8,7 +8,8 @@ import { ASIDE_ADAPTER_FAILURE_LIMIT, ASIDE_REPL_TIMEOUT_MS } from "../constants
 import { normalizePageUrl } from "../policy/url"
 import { suppressAriaFields } from "./aria-fields"
 
-const ASIDE_BUNDLE_ID = "at.studio.AsideBrowser"
+// macOS bundle ID and the Windows helper's app identity (lowercase executable name).
+const ASIDE_BUNDLE_IDS: ReadonlySet<string> = new Set(["at.studio.AsideBrowser", "aside.exe"])
 const OUTPUT_MARKER = "SIDE_ASIDE_SNAPSHOT "
 const REPL_CODE = `
 const before = (await listBrowserTabs()).find((tab) => tab.active);
@@ -70,11 +71,15 @@ export function resolveAsideExecutable(
   home = homedir(),
   exists: (path: string) => boolean = existsSync,
 ): string {
-  return (
-    [join(home, ".local/bin/aside"), "/usr/local/bin/aside", "/opt/homebrew/bin/aside"].find(
-      exists,
-    ) ?? "aside"
-  )
+  const candidates =
+    process.platform === "win32"
+      ? [
+          join(home, ".local", "bin", "aside.exe"),
+          join(home, "AppData", "Local", "Programs", "Aside", "aside.exe"),
+          join(home, "AppData", "Roaming", "npm", "aside.exe"),
+        ]
+      : [join(home, ".local/bin/aside"), "/usr/local/bin/aside", "/opt/homebrew/bin/aside"]
+  return candidates.find(exists) ?? "aside"
 }
 
 async function runAsideCommand(
@@ -143,7 +148,8 @@ export class AsideDomAdapter {
       this.failures = 0
       return options.captureAx()
     }
-    if (options.foregroundBundleId !== ASIDE_BUNDLE_ID) return options.captureAx()
+    if (options.foregroundBundleId === null || !ASIDE_BUNDLE_IDS.has(options.foregroundBundleId))
+      return options.captureAx()
 
     try {
       const stdout = await this.runCommand("aside", ["repl", REPL_CODE], ASIDE_REPL_TIMEOUT_MS)

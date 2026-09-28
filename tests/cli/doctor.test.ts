@@ -1,3 +1,4 @@
+import { DOCTOR_SQLITE_HINT } from "../../src/platform/messages"
 import { expect, test } from "bun:test"
 import { existsSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -21,7 +22,7 @@ test("Given a missing custom SQLite path, doctor reports FAIL, remediation, and 
   })
   expect(result).toBe(1)
   expect(lines.join("\n")).toContain("FAIL custom SQLite")
-  expect(lines.join("\n")).toContain("Install or bundle libsqlite3.dylib")
+  expect(lines.join("\n")).toContain(DOCTOR_SQLITE_HINT)
   expect(lines.join("\n")).toContain("SKIP provider connection")
 })
 

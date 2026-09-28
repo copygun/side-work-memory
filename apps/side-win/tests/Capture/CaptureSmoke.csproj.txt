@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows10.0.19041.0</TargetFramework><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><AllowUnsafeBlocks>true</AllowUnsafeBlocks><ApplicationManifest>C:\Users\copyg\dev\side-work-memory\apps\side-win\app.manifest</ApplicationManifest></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="C:\Users\copyg\dev\side-work-memory\apps\side-win\src\Core\**\*.cs;C:\Users\copyg\dev\side-work-memory\apps\side-win\src\Capture\**\*.cs" />
+    <EmbeddedResource Include="C:\Users\copyg\dev\side-work-memory\specs\shared\hard-blocked-bundle-ids.json" LogicalName="hard-blocked-bundle-ids.json" />
+  </ItemGroup>
+</Project>

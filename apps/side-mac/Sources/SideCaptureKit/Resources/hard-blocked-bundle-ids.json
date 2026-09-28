@@ -6,5 +6,15 @@
   "com.apple.systempreferences",
   "com.apple.Passwords",
   "com.bitwarden.desktop",
-  "org.keepassxc.keepassxc"
+  "org.keepassxc.keepassxc",
+  "side.exe",
+  "1password.exe",
+  "bitwarden.exe",
+  "keepassxc.exe",
+  "keepass.exe",
+  "credentialuibroker.exe",
+  "consent.exe",
+  "logonui.exe",
+  "systemsettings.exe",
+  "passwordmanager.exe"
 ]

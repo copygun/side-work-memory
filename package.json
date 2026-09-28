@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun run src/cli.ts daemon",
     "build": "sh apps/side-mac/scripts/build-app.sh",
-    "build:web": "rm -rf ./src/web/dist && bun build ./src/web/index.html --target browser --minify --outdir ./src/web/dist",
+    "build:win": "bun run scripts/build-windows.ts",
+    "build:web": "bun -e \"require('node:fs').rmSync('./src/web/dist', { recursive: true, force: true })\" && bun build ./src/web/index.html --target browser --minify --outdir ./src/web/dist",
     "start": "bun run src/cli.ts daemon",
     "test": "bun test",
     "check": "tsc --noEmit && biome check ."

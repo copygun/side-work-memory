@@ -57,6 +57,13 @@ const BROWSER_BUNDLE_IDS = new Set([
   "company.thebrowser.Browser",
   "com.brave.Browser",
   "com.microsoft.edgemac",
+  // Windows helper identities (lowercase executable names).
+  "aside.exe",
+  "chrome.exe",
+  "msedge.exe",
+  "brave.exe",
+  "whale.exe",
+  "arc.exe",
 ])
 
 const ObservationSchema = z.object({
@@ -710,7 +717,10 @@ async function runPrivateDaemon<TimerId>(options: DaemonOptions<TimerId>): Promi
       browserHistory: (request) =>
         createBrowserHistoryProvider({
           applicationSupportPath:
-            options.browserHistoryRoot ?? join(homedir(), "Library", "Application Support"),
+            options.browserHistoryRoot ??
+            (process.platform === "win32"
+              ? (process.env["LOCALAPPDATA"] ?? join(homedir(), "AppData", "Local"))
+              : join(homedir(), "Library", "Application Support")),
           settings: reconciler.currentSettings.contextAwareness,
           now: () => clock.now(),
         })(request),

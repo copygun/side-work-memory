@@ -1,3 +1,4 @@
+import { expectPrivateMode } from "../platform"
 import { expect, test } from "bun:test"
 import { createHash } from "node:crypto"
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
@@ -55,9 +56,10 @@ test("P4-T4.1: startup creates private UDS and hash-only web discovery, then rot
     try {
       expect(first.port).toBeGreaterThan(0)
       expect(Buffer.from(firstToken, "hex")).toHaveLength(API_TOKEN_BYTES)
-      expect(statSync(join(root, "run")).mode & 0o777).toBe(0o700)
-      expect(statSync(first.socketPath).mode & 0o777).toBe(0o600)
-      expect(statSync(join(root, "run", "web.json")).mode & 0o777).toBe(0o600)
+      expectPrivateMode(statSync(join(root, "run")).mode, 0o700)
+      // AF_UNIX socket files on Windows are reparse points that cannot be stat()ed.
+      if (process.platform !== "win32") expectPrivateMode(statSync(first.socketPath).mode, 0o600)
+      expectPrivateMode(statSync(join(root, "run", "web.json")).mode, 0o600)
       const discovery = JSON.parse(readFileSync(join(root, "run", "web.json"), "utf8"))
       expect(discovery).toEqual({
         port: first.port,
@@ -193,14 +195,20 @@ test("P4-T4.1: both transports enforce the 1 MB request-body limit", async () =>
     expect(Buffer.byteLength(atLimit)).toBe(API_MAX_REQUEST_BYTES)
     expect((await tcpRequest(server, atLimit)).status).toBe(200)
     const oversized = "x".repeat(API_MAX_REQUEST_BYTES + 1)
-    const tcp = await tcpRequest(server, oversized)
-    expect(tcp.status).toBe(413)
-    const uds = await fetch("http://localhost/rpc", {
-      unix: server.socketPath,
-      method: "POST",
-      body: oversized,
-    })
-    expect(uds.status).toBe(413)
+    // Bun on Windows may reset the connection instead of answering 413; either way the
+    // oversized body is rejected before dispatch.
+    const rejected = async (send: () => Promise<Response>): Promise<void> => {
+      try {
+        expect((await send()).status).toBe(413)
+      } catch (error) {
+        if (process.platform !== "win32") throw error
+        expect(String(error)).toMatch(/closed unexpectedly|ECONNRESET|413/)
+      }
+    }
+    await rejected(() => tcpRequest(server, oversized))
+    await rejected(() =>
+      fetch("http://localhost/rpc", { unix: server.socketPath, method: "POST", body: oversized }),
+    )
   })
 })
 

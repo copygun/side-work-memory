@@ -1,3 +1,5 @@
+import { DAEMON_UNAVAILABLE_MESSAGE } from "../../src/platform/messages"
+import { expectPrivateMode } from "../platform"
 import { expect, test } from "bun:test"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -178,7 +180,7 @@ test("P3-T3.8: SDK client lists three bounded tools and receives daemon UDS resu
       expect(logText).not.toContain("synthetic memory")
       for (const line of logText.match(/^\{.*\}$/gm) ?? []) LogSchema.parse(JSON.parse(line))
       const usagePath = join(root, "run", "mcp-usage.jsonl")
-      expect(statSync(usagePath).mode & 0o777).toBe(0o600)
+      expectPrivateMode(statSync(usagePath).mode, 0o600)
       const usageText = readFileSync(usagePath, "utf8")
       const records = usageText
         .trim()
@@ -207,7 +209,7 @@ test("P3-T3.8: absent daemon returns a tool error while the SDK server stays ali
       })
       expect(result.isError).toBe(true)
       expect(result.content).toEqual([
-        { type: "text", text: "Side is not running. Open Side.app." },
+        { type: "text", text: DAEMON_UNAVAILABLE_MESSAGE },
       ])
     }
     expect((await client.listTools()).tools).toHaveLength(3)

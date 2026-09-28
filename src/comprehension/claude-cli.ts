@@ -1,6 +1,4 @@
 import { spawn } from "node:child_process"
-import { accessSync, constants, statSync } from "node:fs"
-import { delimiter, isAbsolute, join } from "node:path"
 import { z } from "zod"
 import {
   SUMMARY_CLAUDE_CONSENT_POLL_MS,
@@ -8,6 +6,7 @@ import {
   SUMMARY_PROVIDER_TIMEOUT_MS,
 } from "../constants"
 import { RecordSummaryTool } from "../contracts/summary"
+import { type ResolvedExecutable, resolveCliExecutable } from "../platform/executable"
 import type { SummaryMessage } from "./prompt"
 import { SUMMARY_SYSTEM_PROMPT } from "./prompt"
 
@@ -71,28 +70,10 @@ const CliJsonSchema = JSON.stringify(RecordSummaryTool.parameters, (key, value: 
 type CapturedRun = { readonly stdout: string; readonly responseBytes: number }
 type StopReason = "revoked" | "timeout" | "overflow" | "input-error"
 
-function isExecutableFile(path: string): boolean {
-  try {
-    if (!statSync(path).isFile()) return false
-    accessSync(path, constants.X_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function resolveClaudeExecutable(): string {
-  for (const directory of (process.env["PATH"] ?? "").split(delimiter)) {
-    if (!isAbsolute(directory)) continue
-    const candidate = join(directory, "claude")
-    if (isExecutableFile(candidate)) return candidate
-  }
-  const home = process.env["HOME"]
-  if (home && isAbsolute(home)) {
-    const candidate = join(home, ".local", "bin", "claude")
-    if (isExecutableFile(candidate)) return candidate
-  }
-  throw new ClaudeCliUnavailableError()
+function resolveClaudeExecutable(): ResolvedExecutable {
+  const resolved = resolveCliExecutable("claude")
+  if (resolved === null) throw new ClaudeCliUnavailableError()
+  return resolved
 }
 
 function cliEnvironment(): NodeJS.ProcessEnv {
@@ -104,7 +85,7 @@ function cliEnvironment(): NodeJS.ProcessEnv {
 }
 
 async function runClaude(
-  executable: string,
+  executable: ResolvedExecutable,
   args: readonly string[],
   input: string | undefined,
   deadline: number,
@@ -112,8 +93,9 @@ async function runClaude(
 ): Promise<CapturedRun> {
   if (!canSendEvidence()) throw new ClaudeCliConsentRevokedError()
   if (performance.now() >= deadline) throw new ClaudeCliUnavailableError()
-  const child = spawn(executable, [...args], {
+  const child = spawn(executable.command, [...executable.prefixArgs, ...args], {
     shell: false,
+    windowsHide: true,
     stdio: ["pipe", "pipe", "pipe"],
     env: cliEnvironment(),
   })

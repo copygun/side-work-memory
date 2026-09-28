@@ -44,7 +44,7 @@ function run(args: string[], env: Record<string, string> = {}) {
   return { code: result.exitCode, output: result.stdout.toString() + result.stderr.toString() }
 }
 
-test("preflight checks the exact bundle layout and permission strings", () => {
+test.skipIf(process.platform !== "darwin")("preflight checks the exact bundle layout and permission strings", () => {
   const { root, app } = fixture()
   try {
     expect(run(["preflight", app]).code).toBe(0)
@@ -57,7 +57,7 @@ test("preflight checks the exact bundle layout and permission strings", () => {
   }
 })
 
-test("preflight rejects an app without its Screen Recording purpose string", () => {
+test.skipIf(process.platform !== "darwin")("preflight rejects an app without its Screen Recording purpose string", () => {
   const { root, app } = fixture()
   try {
     const info = join(app, "Contents", "Info.plist")
@@ -73,7 +73,7 @@ test("preflight rejects an app without its Screen Recording purpose string", () 
   }
 })
 
-test("release refuses a missing Developer ID before changing the app or creating a ZIP", () => {
+test.skipIf(process.platform !== "darwin")("release refuses a missing Developer ID before changing the app or creating a ZIP", () => {
   const { root, app } = fixture()
   try {
     const output = join(root, "Side.zip")
@@ -93,7 +93,7 @@ test("release refuses a missing Developer ID before changing the app or creating
   }
 })
 
-test("synthetic Accepted notarization signs nested code first and staples before packaging", () => {
+test.skipIf(process.platform !== "darwin")("synthetic Accepted notarization signs nested code first and staples before packaging", () => {
   const { root, app } = fixture()
   try {
     const bin = join(root, "bin")
@@ -135,7 +135,7 @@ test("synthetic Accepted notarization signs nested code first and staples before
   }
 })
 
-test("synthetic Invalid notarization never staples or publishes a ZIP", () => {
+test.skipIf(process.platform !== "darwin")("synthetic Invalid notarization never staples or publishes a ZIP", () => {
   const { root, app } = fixture()
   try {
     const bin = join(root, "bin")

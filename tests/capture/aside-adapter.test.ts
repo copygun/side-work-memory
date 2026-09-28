@@ -76,7 +76,14 @@ describe("AsideDomAdapter", () => {
     })
   })
 
-  test("resolves Aside from absolute user or system paths with the app's restricted PATH", () => {
+  test.skipIf(process.platform !== "win32")("resolves aside.exe from per-user install paths on Windows", () => {
+    const home = "C:\\Users\\example"
+    const local = `${home}\\.local\\bin\\aside.exe`
+    expect(resolveAsideExecutable(home, (path) => path === local)).toBe(local)
+    expect(resolveAsideExecutable(home, () => false)).toBe("aside")
+  })
+
+  test.skipIf(process.platform === "win32")("resolves Aside from absolute user or system paths with the app's restricted PATH", () => {
     const home = "/Users/example"
     expect(resolveAsideExecutable(home, (path) => path === `${home}/.local/bin/aside`)).toBe(
       `${home}/.local/bin/aside`,

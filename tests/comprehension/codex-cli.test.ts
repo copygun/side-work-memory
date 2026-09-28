@@ -1,3 +1,4 @@
+import { IS_WINDOWS, installCliStub, prependPath } from "../platform"
 import { expect, test } from "bun:test"
 import {
   chmodSync,
@@ -44,7 +45,7 @@ const mode = process.env.SIDE_CODEX_STUB_MODE
 const trace = process.env.SIDE_CODEX_STUB_TRACE
 if (args[0] === "login") {
   const authPath = process.env.CODEX_HOME + "/auth.json"
-  appendFileSync(trace, JSON.stringify({ kind: "login", args, cwd: process.cwd(), home: process.env.HOME, codexHome: process.env.CODEX_HOME, authLinked: lstatSync(authPath).isSymbolicLink(), authLinkTarget: readlinkSync(authPath), apiKey: Boolean(process.env.OPENAI_API_KEY), codexKey: Boolean(process.env.CODEX_API_KEY) }) + "\\n")
+  appendFileSync(trace, JSON.stringify({ kind: "login", args, cwd: process.cwd(), home: process.env.HOME, codexHome: process.env.CODEX_HOME, authLinked: lstatSync(authPath).isSymbolicLink(), authLinkTarget: lstatSync(authPath).isSymbolicLink() ? readlinkSync(authPath) : null, apiKey: Boolean(process.env.OPENAI_API_KEY), codexKey: Boolean(process.env.CODEX_API_KEY) }) + "\\n")
   if (mode === "replace-auth-link") { unlinkSync(authPath); writeFileSync(authPath, JSON.stringify({ token: "SYNTHETIC_REPLACEMENT" }), { mode: 0o600 }) }
   if (mode === "replace-auth-link-invalid-json") { unlinkSync(authPath); writeFileSync(authPath, "NOT_JSON", { mode: 0o600 }) }
   process.stderr.write(mode === "api-auth" ? "Logged in using an API key\\n" : "Logged in using ChatGPT\\n")
@@ -97,15 +98,13 @@ async function withStub<T>(
   run: (trace: string, started: string) => Promise<T>,
 ): Promise<T> {
   const directory = mkdtempSync(join(tmpdir(), "side-codex-test-"))
-  const executable = join(directory, "codex")
   const codexHome = join(directory, "codex-home")
   mkdirSync(codexHome)
   writeFileSync(join(codexHome, "AGENTS.md"), "SYNTHETIC_GLOBAL_INSTRUCTION_SENTINEL")
   writeFileSync(join(codexHome, "auth.json"), "SYNTHETIC_AUTH_NOT_REAL", { mode: 0o600 })
   const trace = join(directory, "trace.jsonl")
   const started = join(directory, "started")
-  writeFileSync(executable, stub.replace("#!BUN", `#!${process.execPath}`))
-  chmodSync(executable, 0o700)
+  installCliStub(directory, "codex", stub)
   const names = [
     "PATH",
     "OPENAI_API_KEY",
@@ -119,7 +118,7 @@ async function withStub<T>(
   ] as const
   const original = Object.fromEntries(names.map((name) => [name, process.env[name]]))
   Object.assign(process.env, {
-    PATH: `${directory}:${original["PATH"] ?? ""}`,
+    PATH: prependPath(directory, original["PATH"]),
     OPENAI_API_KEY: "synthetic-key",
     CODEX_API_KEY: "synthetic-key",
     SIDE_CODEX_STUB_MODE: mode,
@@ -178,8 +177,11 @@ test("Codex login runs in an empty temporary cwd with safe flags, scrubbed keys,
     const rows = traceRows(trace)
     expect(rows.map((row) => row["kind"])).toEqual(["login", "exec"])
     expect(rows[0]?.["codexHome"]).not.toBe(process.env["CODEX_HOME"])
-    expect(rows[0]?.["authLinked"]).toBe(true)
-    expect(rows[0]?.["authLinkTarget"]).toBe(join(process.env["CODEX_HOME"] ?? "", "auth.json"))
+    // Windows copies the login in (no unprivileged symlinks); POSIX links to the account file.
+    expect(rows[0]?.["authLinked"]).toBe(!IS_WINDOWS)
+    expect(rows[0]?.["authLinkTarget"]).toBe(
+      IS_WINDOWS ? null : join(process.env["CODEX_HOME"] ?? "", "auth.json"),
+    )
     expect(readFileSync(join(process.env["CODEX_HOME"] ?? "", "auth.json"), "utf8")).toBe(
       "SYNTHETIC_AUTH_NOT_REAL",
     )
@@ -267,7 +269,8 @@ test("Codex without evidence consent never launches the CLI", async () => {
 })
 
 test("Codex fails closed when file-backed login is missing or unsafe", async () => {
-  for (const mode of ["missing", "public-mode"])
+  // Windows has no POSIX mode bits to loosen; the profile ACL protects the file there.
+  for (const mode of IS_WINDOWS ? ["missing"] : ["missing", "public-mode"])
     await withStub("ok", async (trace) => {
       const authPath = join(process.env["CODEX_HOME"] ?? "", "auth.json")
       if (mode === "missing") unlinkSync(authPath)

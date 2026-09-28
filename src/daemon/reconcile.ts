@@ -181,7 +181,7 @@ export class Reconciler<TimerId> {
     const active =
       capture.enabled &&
       health !== null &&
-      health.platform === "darwin" &&
+      (health.platform === "darwin" || health.platform === "win32") &&
       health.nativeCaptureAvailable &&
       health.accessibilityTrusted &&
       health.inputMonitoringTrusted

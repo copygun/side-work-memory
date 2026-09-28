@@ -104,7 +104,9 @@ export async function startApiServer(options: ApiServerOptions): Promise<ApiServ
       maxRequestBodySize: API_MAX_REQUEST_BYTES,
       fetch: (request) => serveRpc(request, options.handlers),
     })
-    await chmod(socketPath, PRIVATE_FILE_MODE)
+    // Windows AF_UNIX sockets are reparse points without POSIX modes; the per-user run
+    // directory ACL (%APPDATA%) is the access boundary there.
+    if (process.platform !== "win32") await chmod(socketPath, PRIVATE_FILE_MODE)
     tcp = Bun.serve({
       hostname: "127.0.0.1",
       port: 0,

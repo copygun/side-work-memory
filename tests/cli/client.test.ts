@@ -1,3 +1,4 @@
+import { DAEMON_UNAVAILABLE_MESSAGE } from "../../src/platform/messages"
 import { expect, test } from "bun:test"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -37,7 +38,7 @@ test("Given a stopped daemon, CLI commands return the approved availability mess
     ).rejects.toThrow(DaemonUnavailableError)
     await expect(
       callDaemon("status", undefined, { socketPath: join(directory, "missing.sock") }),
-    ).rejects.toThrow("Side is not running. Open Side.app.")
+    ).rejects.toThrow(DAEMON_UNAVAILABLE_MESSAGE)
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }

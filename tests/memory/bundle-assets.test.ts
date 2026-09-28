@@ -4,8 +4,15 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { modelCacheDirectory } from "../../src/memory/embed"
 import { bundledResourcePath } from "../../src/memory/sqlite"
+import { IS_WINDOWS } from "../platform"
 
-test("Given a Side.app executable, when resolving resources, then paths use Contents/Resources", () => {
+test.skipIf(!IS_WINDOWS)("Given a Windows side.exe, when resolving resources, then paths sit next to the executable", () => {
+  const executable = "C:\\Program Files\\Side\\side.exe"
+  expect(bundledResourcePath(executable, "lib", "vec0.dll")).toBe("C:\\Program Files\\Side\\lib\\vec0.dll")
+  expect(bundledResourcePath(executable, "web")).toBe("C:\\Program Files\\Side\\web")
+})
+
+test.skipIf(IS_WINDOWS)("Given a Side.app executable, when resolving resources, then paths use Contents/Resources", () => {
   // Given
   const executable = "/Applications/Side.app/Contents/Resources/side"
 

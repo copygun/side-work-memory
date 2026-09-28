@@ -38,10 +38,18 @@ const systemClock: TimerClock<ReturnType<typeof setTimeout>> = {
 
 async function loadModel(cacheDir: string): Promise<EmbeddingModel> {
   mkdirSync(cacheDir, { recursive: true })
-  const { pipeline } = await import("@huggingface/transformers")
+  const { env, pipeline } = await import("@huggingface/transformers")
+  const bundled = cacheDir === bundledResourcePath(process.execPath, "models")
+  if (bundled) {
+    // Resolve bundled files as a local model tree. Relying on the file cache alone is not enough:
+    // transformers v4 does not forward local_files_only to every file lookup and would try the
+    // network (observed on Windows, where the compiled binary's default localModelPath is virtual).
+    env.localModelPath = cacheDir
+    env.allowRemoteModels = false
+  }
   const extractor = await pipeline("feature-extraction", EMBEDDING_MODEL_ID, {
     cache_dir: cacheDir,
-    local_files_only: cacheDir === bundledResourcePath(process.execPath, "models"),
+    local_files_only: bundled,
     device: "cpu",
     dtype: "q8",
   })

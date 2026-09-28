@@ -115,7 +115,7 @@ test("Given a missing root or ledger, when scanned, then the gate fails closed",
   }
 })
 
-test("Given a symlink in a scanned tree, when scanned, then the gate fails without following it", async () => {
+test.skipIf(process.platform === "win32")("Given a symlink in a scanned tree, when scanned, then the gate fails without following it", async () => {
   const root = await mkdtemp(join(tmpdir(), "side-g1-"))
   const outside = await mkdtemp(join(tmpdir(), "side-g1-outside-"))
   try {

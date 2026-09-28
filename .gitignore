@@ -13,3 +13,6 @@ apps/side-mac/.build/
 !.env.example
 *.p12
 *.p8
+apps/side-win/bin/
+apps/side-win/obj/
+src/web/dist/

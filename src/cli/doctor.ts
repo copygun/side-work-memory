@@ -4,6 +4,12 @@ import type { RpcMethodName } from "../contracts/rpc"
 import { modelCacheDirectory } from "../memory/embed"
 import { openIndexDb } from "../memory/index-db"
 import { configureSqlite } from "../memory/sqlite"
+import {
+  DOCTOR_KEYCHAIN_HINT,
+  DOCTOR_PERMISSIONS_HINT,
+  DOCTOR_PROVIDER_HINT,
+  DOCTOR_SQLITE_HINT,
+} from "../platform/messages"
 
 type DoctorEnvironment = {
   readonly rpc: (method: RpcMethodName, params: unknown) => Promise<unknown>
@@ -85,7 +91,7 @@ export async function runDoctor(environment: DoctorEnvironment): Promise<number>
       ? "PASS"
       : "FAIL",
     "Keychain",
-    "Unlock this Mac and restart Side.app if the helper handshake is unavailable",
+    DOCTOR_KEYCHAIN_HINT,
   )
   const requiredPermissions =
     permissions?.["accessibility"] === true &&
@@ -94,14 +100,14 @@ export async function runDoctor(environment: DoctorEnvironment): Promise<number>
   report(
     requiredPermissions ? "PASS" : "FAIL",
     "permissions",
-    "Grant Accessibility and Input Monitoring in System Settings; Screen Recording is required when OCR is enabled",
+    DOCTOR_PERMISSIONS_HINT,
   )
 
   const sqlite = (environment.checkCustomSqlite ?? checkCustomSqlite)()
   report(
     sqlite ? "PASS" : "FAIL",
     "custom SQLite",
-    "Install or bundle libsqlite3.dylib with extension loading support",
+    DOCTOR_SQLITE_HINT,
   )
   const vec0 = sqlite && (environment.checkVec0 ?? checkVec0)()
   report(vec0 ? "PASS" : "FAIL", "vec0", "Bundle or install sqlite-vec for the custom SQLite")
@@ -117,7 +123,7 @@ export async function runDoctor(environment: DoctorEnvironment): Promise<number>
   const selectedId = selected?.["provider"]
   const selectedModelId = selected?.["modelId"]
   if (!Array.isArray(providers)) {
-    report("FAIL", "provider connection", "Start Side.app to inspect configured providers")
+    report("FAIL", "provider connection", DOCTOR_PROVIDER_HINT)
   } else if (providers.length === 0 || typeof selectedId !== "string") {
     report("SKIP", "provider connection", "No summary provider is configured")
   } else {

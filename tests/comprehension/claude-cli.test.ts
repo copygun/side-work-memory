@@ -1,3 +1,4 @@
+import { IS_WINDOWS, installCliStub, MINIMAL_SYSTEM_PATH, prependPath } from "../platform"
 import { expect, test } from "bun:test"
 import {
   chmodSync,
@@ -96,14 +97,11 @@ async function withStub<T>(
 ): Promise<T> {
   const directory = mkdtempSync(join(tmpdir(), "side-claude-test-"))
   const home = join(directory, "home")
-  const executable = packagedParent
-    ? join(home, ".local", "bin", "claude")
-    : join(directory, "claude")
+  const binDirectory = packagedParent ? join(home, ".local", "bin") : directory
   const trace = join(directory, "trace.jsonl")
   const started = join(directory, "started")
   if (packagedParent) mkdirSync(join(home, ".local", "bin"), { recursive: true })
-  writeFileSync(executable, stub.replace("#!/usr/bin/env bun", `#!${process.execPath}`))
-  chmodSync(executable, 0o700)
+  installCliStub(binDirectory, "claude", stub)
   const original = {
     path: process.env["PATH"],
     home: process.env["HOME"],
@@ -113,14 +111,16 @@ async function withStub<T>(
     count: process.env["SIDE_CLAUDE_STUB_COUNT"],
     started: process.env["SIDE_CLAUDE_STUB_STARTED"],
     user: process.env["USER"],
+    userprofile: process.env["USERPROFILE"],
     logname: process.env["LOGNAME"],
   }
   const originalOverrides = new Map(authOverrideNames.map((name) => [name, process.env[name]]))
   process.env["PATH"] = packagedParent
-    ? "/usr/bin:/bin:/usr/sbin:/sbin"
-    : `${directory}:${original.path ?? ""}`
+    ? MINIMAL_SYSTEM_PATH
+    : prependPath(directory, original.path)
   if (packagedParent) {
     process.env["HOME"] = home
+    if (IS_WINDOWS) process.env["USERPROFILE"] = home
     process.env["USER"] = "synthetic-account"
     process.env["LOGNAME"] = "synthetic-account"
   }
@@ -136,6 +136,7 @@ async function withStub<T>(
     for (const [name, value] of Object.entries({
       PATH: original.path,
       HOME: original.home,
+      USERPROFILE: original.userprofile,
       SIDE_CLAUDE_STUB_MODE: original.mode,
       SIDE_CLAUDE_STUB_TRACE: original.trace,
       SIDE_CLAUDE_STUB_RESULT: original.result,

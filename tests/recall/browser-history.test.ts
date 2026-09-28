@@ -211,7 +211,7 @@ test("Given no supported profile, when checked and searched, then the approved u
   expect(rows).toEqual([])
 })
 
-test("Given symlinked profile paths, when searched, then linked History files are ignored", async () => {
+test.skipIf(process.platform === "win32")("Given symlinked profile paths, when searched, then linked History files are ignored", async () => {
   // Given an outside database reached through profile, app-root, and History symlinks.
   const { root, options } = fixture()
   const outside = history({ ...options, applicationSupportPath: root }, "outside/Default", [

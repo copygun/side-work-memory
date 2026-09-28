@@ -1,3 +1,4 @@
+import { DAEMON_UNAVAILABLE_MESSAGE } from "../src/platform/messages"
 import { expect, test } from "bun:test"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -30,7 +31,7 @@ test("Given an absent daemon, when the MCP entrypoint connects, then it serves t
       arguments: { queries: ["synthetic"] },
     })
     expect(result.isError).toBe(true)
-    expect(result.content).toEqual([{ type: "text", text: "Side is not running. Open Side.app." }])
+    expect(result.content).toEqual([{ type: "text", text: DAEMON_UNAVAILABLE_MESSAGE }])
   } finally {
     await client.close()
     await transport.close()

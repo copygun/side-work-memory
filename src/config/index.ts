@@ -6,14 +6,21 @@ import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from "../constants"
 import { type Settings, SettingsSchema } from "../contracts/settings"
 import { migrateConfig } from "./migrate"
 
+/** Per-user application data root: ~/Library/Application Support on macOS, %APPDATA% on Windows. */
+export function appSupportDirectory(): string {
+  if (process.platform === "win32")
+    return process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming")
+  return join(homedir(), "Library", "Application Support")
+}
+
 export function dataDirectory(): string {
-  return process.env["SIDE_DATA_DIR"] ?? join(homedir(), "Library", "Application Support", "Side")
+  return process.env["SIDE_DATA_DIR"] ?? join(appSupportDirectory(), "Side")
 }
 
 function legacyDataDirectory(): string {
   return (
     process.env["LCA_DATA_DIR"] ??
-    join(homedir(), "Library", "Application Support", "Local Context Awareness")
+    join(appSupportDirectory(), "Local Context Awareness")
   )
 }
 
